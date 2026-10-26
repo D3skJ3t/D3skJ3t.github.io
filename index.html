@@ -1,0 +1,317 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Oxley Forecast Compare</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="theme-color" content="#eef3f4">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&family=Source+Sans+3:wght@400;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one narrow instrument-panel column. Now card, 7-day strip, model table for the chosen day, comparison chart, sources. */
+:root{
+  --bg:#eef3f4; --surface:#ffffff; --fg:#12242c; --muted:#5a6d74; --line:#d3dee1;
+  --accent:#0b6a86; --accent-soft:#dcedf2;
+  --good:#2f7d4f; --warn:#b07a12; --bad:#b4442f;
+  --m1:#0b6a86; --m2:#7a4fb3; --m3:#c2571a; --m4:#2f7d4f; --m5:#c23a6b; --m6:#5b6b14; --m7:#3d63c7;
+  --display:"Barlow Semi Condensed","Arial Narrow",Arial,sans-serif;
+  --body:"Source Sans 3","Segoe UI",system-ui,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0d171b; --surface:#152329; --fg:#e4eef1; --muted:#93a8af; --line:#26383f;
+  --accent:#5cc0de; --accent-soft:#173a45;
+  --good:#6cc690; --warn:#e2b04a; --bad:#ef8a72;
+  --m1:#5cc0de; --m2:#b394e8; --m3:#f0935a; --m4:#6cc690; --m5:#ef7fa8; --m6:#b9c95a; --m7:#86a6f5;
+  color-scheme:dark;}}
+:root[data-theme="dark"]{
+  --bg:#0d171b; --surface:#152329; --fg:#e4eef1; --muted:#93a8af; --line:#26383f;
+  --accent:#5cc0de; --accent-soft:#173a45;
+  --good:#6cc690; --warn:#e2b04a; --bad:#ef8a72;
+  --m1:#5cc0de; --m2:#b394e8; --m3:#f0935a; --m4:#6cc690; --m5:#ef7fa8; --m6:#b9c95a; --m7:#86a6f5;
+  color-scheme:dark;}
+*{box-sizing:border-box}
+html,body{background:var(--bg)}
+body{margin:0;color:var(--fg);font:16px/1.5 var(--body);-webkit-text-size-adjust:100%}
+.wrap{max-width:760px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 40px;display:flex;flex-direction:column;gap:22px}
+h1,h2{font-family:var(--display);font-weight:700;margin:0;text-wrap:balance;letter-spacing:.01em}
+h1{font-size:1.9rem;line-height:1.05}
+h2{font-size:1.25rem}
+.eyebrow{font:500 .72rem/1 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.mono,.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+header{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap}
+header .meta{display:flex;flex-direction:column;gap:6px}
+.status{font:.8rem/1.3 var(--mono);color:var(--muted)}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:8px 14px;font:600 .9rem var(--body)}
+.btn:hover{border-color:var(--accent)}
+.btn[disabled]{opacity:.55;cursor:progress}
+
+/* Now panel */
+.now{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px;display:grid;grid-template-columns:auto 1fr;gap:6px 20px;align-items:center}
+.now .temp{font:600 3.4rem/1 var(--display);font-variant-numeric:tabular-nums}
+.now .temp small{font-size:1.4rem;color:var(--muted);margin-left:2px}
+.now .cond{font:600 1.1rem var(--display)}
+.now dl{grid-column:1/-1;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:10px 0 0;padding-top:12px;border-top:1px solid var(--line)}
+.now dt{font:500 .66rem/1.2 var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.now dd{margin:2px 0 0;font:500 1rem var(--mono);font-variant-numeric:tabular-nums}
+.note{font-size:.82rem;color:var(--muted);margin:0}
+
+/* Day strip */
+.days{display:grid;grid-template-columns:repeat(7,minmax(84px,1fr));gap:8px;overflow-x:auto;padding-bottom:4px;scroll-snap-type:x proximity}
+.day{scroll-snap-align:start;text-align:left;border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:10px;display:flex;flex-direction:column;gap:4px;min-width:0}
+.day[aria-pressed="true"]{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent);background:var(--accent-soft)}
+.day .dname{font:700 1rem/1 var(--display)}
+.day .ddate{font:.7rem var(--mono);color:var(--muted)}
+.day .dtemps{font:500 .95rem var(--mono);font-variant-numeric:tabular-nums}
+.day .dtemps span{color:var(--muted)}
+.day .drain{font:.75rem var(--mono);color:var(--muted)}
+.agree{display:inline-flex;align-items:center;gap:5px;font:500 .68rem/1 var(--mono);color:var(--muted)}
+.agree i{width:8px;height:8px;border-radius:50%;display:inline-block;background:var(--good)}
+.agree.mid i{background:var(--warn)} .agree.low i{background:var(--bad)}
+
+/* Day detail */
+.detail{display:flex;flex-direction:column;gap:12px}
+.summary{display:flex;flex-wrap:wrap;gap:8px}
+.pill{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:4px 12px;font:500 .8rem var(--mono)}
+.pill b{font-weight:500;color:var(--accent)}
+.tablebox{overflow-x:auto;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;min-width:460px}
+th,td{padding:9px 10px;text-align:right;white-space:nowrap}
+th{font:500 .66rem/1.2 var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--line)}
+th:first-child,td:first-child{text-align:left;position:sticky;left:0;background:var(--surface)}
+td{font:400 .92rem var(--mono);font-variant-numeric:tabular-nums;border-bottom:1px solid var(--line)}
+tbody tr:last-child td{border-bottom:none}
+td .mname{font:600 .95rem var(--body);display:flex;align-items:center;gap:8px}
+td .mname i{width:10px;height:10px;border-radius:3px;flex:none}
+td .msrc{display:block;font:.7rem var(--body);color:var(--muted);margin-left:18px}
+td.out{color:var(--bad);font-weight:500}
+tr.median td{font-weight:500;background:var(--accent-soft)}
+tr.median td:first-child{background:var(--accent-soft);font:700 .95rem var(--display)}
+.dash{color:var(--muted)}
+
+/* Chart */
+.chartcard{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:12px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;align-self:flex-start}
+.seg button{border:0;background:transparent;padding:6px 12px;font:600 .85rem var(--body);color:var(--muted)}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--surface)}
+svg{display:block;width:100%;height:auto;max-width:100%}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;font:.8rem var(--body)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{width:14px;height:3px;border-radius:2px;display:inline-block}
+
+/* Sources */
+.links{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}
+.links a{display:block;border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:10px 12px;color:var(--fg);text-decoration:none;font-weight:600}
+.links a span{display:block;font:400 .78rem var(--body);color:var(--muted)}
+.links a:hover{border-color:var(--accent)}
+.error{border:1px solid var(--bad);color:var(--bad);border-radius:10px;padding:10px 12px;font-size:.9rem}
+footer{font-size:.8rem;color:var(--muted);display:flex;flex-direction:column;gap:6px}
+section{display:flex;flex-direction:column;gap:10px;min-width:0}
+@media (max-width:420px){.now dl{grid-template-columns:repeat(2,minmax(0,1fr))}h1{font-size:1.65rem}}
+@media (prefers-reduced-motion:no-preference){.day,.btn,.links a{transition:border-color .15s,background .15s}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="meta">
+      <span class="eyebrow">Oxley QLD 4075 · 27.56°S 152.98°E</span>
+      <h1>Oxley Forecast Compare</h1>
+      <span class="status" id="status">Loading forecasts…</span>
+    </div>
+    <button class="btn" id="refresh" type="button">Refresh</button>
+  </header>
+
+  <div id="err" class="error" hidden></div>
+
+  <section aria-labelledby="nowh">
+    <h2 id="nowh" class="eyebrow" style="font-family:var(--mono);font-size:.72rem">Right now</h2>
+    <div class="now" id="now">
+      <div class="temp num">–</div>
+      <div><div class="cond">Waiting for data</div><div class="note">Feels like –</div></div>
+    </div>
+    <p class="note">Model estimate for this spot (Open-Meteo best match, which leans on the Bureau's ACCESS model in Australia). It is not a weather station reading; the nearest Bureau station is Archerfield.</p>
+  </section>
+
+  <section aria-labelledby="weekh">
+    <h2 id="weekh">Next 7 days</h2>
+    <p class="note">Each day shows the median of all models. The dot shows how closely the models agree on the top temperature: green within 2°C, amber within 4°C, red beyond that.</p>
+    <div class="days" id="days" role="group" aria-label="Choose a day"></div>
+  </section>
+
+  <section class="detail" aria-labelledby="dayh">
+    <h2 id="dayh">Model by model</h2>
+    <div class="summary" id="summary"></div>
+    <div class="tablebox">
+      <table>
+        <thead><tr><th>Model</th><th>Max °C</th><th>Min °C</th><th>Rain mm</th><th>Chance</th><th>Wind km/h</th><th>Gust</th></tr></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+    <p class="note">Red figures sit well away from the median (3°C or more for temperature, 5 mm or more for rain). Chance of rain is only published by some models.</p>
+  </section>
+
+  <section class="chartcard" aria-labelledby="charth">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+      <h2 id="charth">How the models line up</h2>
+      <div class="seg" role="group" aria-label="Chart measure">
+        <button type="button" data-m="tmax" aria-pressed="true">Max</button>
+        <button type="button" data-m="tmin" aria-pressed="false">Min</button>
+        <button type="button" data-m="rain" aria-pressed="false">Rain</button>
+      </div>
+    </div>
+    <div id="chart"></div>
+    <div class="legend" id="legend"></div>
+  </section>
+
+  <section aria-labelledby="offh">
+    <h2 id="offh">Official and other forecasts</h2>
+    <div class="links">
+      <a href="https://www.bom.gov.au/qld/forecasts/brisbane.shtml" target="_blank" rel="noopener">Bureau of Meteorology<span>Official Brisbane forecast and warnings</span></a>
+      <a href="https://www.willyweather.com.au/qld/brisbane/oxley.html" target="_blank" rel="noopener">WillyWeather<span>Oxley forecast</span></a>
+      <a href="https://www.weatherzone.com.au/qld/brisbane/oxley" target="_blank" rel="noopener">Weatherzone<span>Oxley forecast</span></a>
+      <a href="https://www.windy.com/-27.556/152.975" target="_blank" rel="noopener">Windy<span>Maps and radar for Oxley</span></a>
+    </div>
+  </section>
+
+  <footer>
+    <span>Forecast data: Open-Meteo.com (free, no key), drawing on each national weather service's model output. For warnings and safety decisions, follow the Bureau of Meteorology.</span>
+  </footer>
+</div>
+
+<script>
+(function(){
+  const LAT=-27.556, LON=152.975, TZ="Australia%2FBrisbane";
+  const MODELS=[
+    {id:"bom_access_global",   name:"BOM ACCESS-G", src:"Bureau of Meteorology, Australia", c:"--m1"},
+    {id:"ecmwf_ifs025",        name:"ECMWF",        src:"European Centre for Medium-Range Weather Forecasts", c:"--m2"},
+    {id:"gfs_seamless",        name:"GFS",          src:"US Global Forecast System (NOAA)", c:"--m3"},
+    {id:"icon_seamless",       name:"ICON",         src:"German Weather Service (DWD)", c:"--m4"},
+    {id:"ukmo_seamless",       name:"UK Met Office",src:"UK Met Office Unified Model", c:"--m5"},
+    {id:"jma_seamless",        name:"JMA",          src:"Japan Meteorological Agency", c:"--m6"},
+    {id:"meteofrance_seamless",name:"Météo-France", src:"Météo-France ARPEGE", c:"--m7"}
+  ];
+  const DVARS=["temperature_2m_max","temperature_2m_min","precipitation_sum","precipitation_probability_max","wind_speed_10m_max","wind_gusts_10m_max","weather_code"];
+  const WMO={0:"Clear",1:"Mostly clear",2:"Partly cloudy",3:"Overcast",45:"Fog",48:"Fog",51:"Light drizzle",53:"Drizzle",55:"Heavy drizzle",56:"Freezing drizzle",57:"Freezing drizzle",61:"Light rain",63:"Rain",65:"Heavy rain",66:"Freezing rain",67:"Freezing rain",71:"Light snow",73:"Snow",75:"Heavy snow",77:"Snow grains",80:"Showers",81:"Showers",82:"Heavy showers",85:"Snow showers",86:"Snow showers",95:"Thunderstorms",96:"Storms with hail",99:"Storms with hail"};
+  const CACHE="oxley-forecast-v1";
+  const $=id=>document.getElementById(id);
+  let state={data:null,sel:0,measure:"tmax"};
+
+  const cssv=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+  const isNum=v=>typeof v==="number"&&isFinite(v);
+  const f0=v=>isNum(v)?Math.round(v).toString():"–";
+  const f1=v=>isNum(v)?(Math.round(v*10)/10).toFixed(1):"–";
+  function median(a){a=a.filter(isNum).sort((x,y)=>x-y);if(!a.length)return null;const m=a.length>>1;return a.length%2?a[m]:(a[m-1]+a[m])/2;}
+  function mode(a){const c={};let best=null,n=0;a.filter(isNum).forEach(v=>{c[v]=(c[v]||0)+1;if(c[v]>n){n=c[v];best=v;}});return best;}
+  function compass(d){if(!isNum(d))return"";return["N","NNE","NE","ENE","E","ESE","SE","SSE","S","SSW","SW","WSW","W","WNW","NW","NNW"][Math.round(d/22.5)%16];}
+  function esc(s){return String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));}
+
+  async function load(){
+    const btn=$("refresh");btn.disabled=true;$("status").textContent="Fetching forecasts…";$("err").hidden=true;
+    const dUrl=`https://api.open-meteo.com/v1/forecast?latitude=${LAT}&longitude=${LON}&daily=${DVARS.join(",")}&models=${MODELS.map(m=>m.id).join(",")}&timezone=${TZ}&forecast_days=7&wind_speed_unit=kmh`;
+    const cUrl=`https://api.open-meteo.com/v1/forecast?latitude=${LAT}&longitude=${LON}&current=temperature_2m,apparent_temperature,relative_humidity_2m,precipitation,weather_code,wind_speed_10m,wind_direction_10m,wind_gusts_10m&timezone=${TZ}&wind_speed_unit=kmh`;
+    try{
+      const [d,c]=await Promise.all([fetch(dUrl).then(r=>{if(!r.ok)throw new Error("daily "+r.status);return r.json();}),fetch(cUrl).then(r=>{if(!r.ok)throw new Error("current "+r.status);return r.json();})]);
+      state.data={daily:d.daily,current:c.current,fetched:Date.now()};
+      try{localStorage.setItem(CACHE,JSON.stringify(state.data));}catch(e){}
+      render();
+    }catch(e){
+      let cached=null;try{cached=JSON.parse(localStorage.getItem(CACHE)||"null");}catch(_){}
+      const msg="Couldn't reach the forecast service. Check your internet connection, then tap Refresh.";
+      if(cached){state.data=cached;render();$("err").textContent=msg+" Showing the last forecast saved on this device.";}
+      else{$("err").textContent=msg+" If you opened this inside an app preview, open the file in Safari or Chrome instead.";$("status").textContent="No data yet";}
+      $("err").hidden=false;
+    }finally{btn.disabled=false;}
+  }
+
+  function series(key,mid){const a=state.data.daily[key+"_"+mid];return Array.isArray(a)?a:[];}
+  function dayRows(i){return MODELS.map(m=>({m,
+    tmax:series("temperature_2m_max",m.id)[i],tmin:series("temperature_2m_min",m.id)[i],
+    rain:series("precipitation_sum",m.id)[i],prob:series("precipitation_probability_max",m.id)[i],
+    wind:series("wind_speed_10m_max",m.id)[i],gust:series("wind_gusts_10m_max",m.id)[i],
+    code:series("weather_code",m.id)[i]})).filter(r=>isNum(r.tmax)||isNum(r.tmin)||isNum(r.rain));}
+  function agreement(rows){const v=rows.map(r=>r.tmax).filter(isNum);if(v.length<2)return{cls:"",label:"n/a",spread:null};const s=Math.max(...v)-Math.min(...v);return{spread:s,cls:s<=2?"":s<=4?"mid":"low",label:s<=2?"Agree":s<=4?"Some spread":"Disagree"};}
+
+  function render(){
+    const D=state.data;if(!D)return;
+    const t=new Date(D.fetched);
+    $("status").textContent="Updated "+t.toLocaleString("en-AU",{weekday:"short",hour:"numeric",minute:"2-digit"});
+    // Now
+    const c=D.current||{};
+    $("now").innerHTML=`<div class="temp num">${f0(c.temperature_2m)}<small>°C</small></div>
+      <div><div class="cond">${esc(WMO[c.weather_code]||"–")}</div><div class="note">Feels like ${f0(c.apparent_temperature)}°C</div></div>
+      <dl><div><dt>Humidity</dt><dd>${f0(c.relative_humidity_2m)}%</dd></div>
+      <div><dt>Wind</dt><dd>${f0(c.wind_speed_10m)} ${compass(c.wind_direction_10m)}</dd></div>
+      <div><dt>Gusts</dt><dd>${f0(c.wind_gusts_10m)} km/h</dd></div>
+      <div><dt>Rain now</dt><dd>${f1(c.precipitation)} mm</dd></div></dl>`;
+    // Days
+    const days=D.daily.time||[];
+    $("days").innerHTML=days.map((ds,i)=>{
+      const rows=dayRows(i),ag=agreement(rows),dt=new Date(ds+"T12:00:00");
+      const wet=rows.filter(r=>isNum(r.rain)&&r.rain>=1).length;
+      const nm=i===0?"Today":i===1?"Tomorrow":dt.toLocaleDateString("en-AU",{weekday:"short"});
+      return `<button type="button" class="day" data-i="${i}" aria-pressed="${i===state.sel}">
+        <span class="dname">${nm}</span><span class="ddate">${dt.toLocaleDateString("en-AU",{day:"numeric",month:"short"})}</span>
+        <span class="dtemps">${f0(median(rows.map(r=>r.tmax)))}° <span>${f0(median(rows.map(r=>r.tmin)))}°</span></span>
+        <span class="drain">${esc(WMO[mode(rows.map(r=>r.code))]||"")}</span>
+        <span class="drain">${wet}/${rows.length} say rain</span>
+        <span class="agree ${ag.cls}"><i></i>${ag.label}</span></button>`;}).join("");
+    renderDay();renderChart();
+  }
+
+  function renderDay(){
+    const D=state.data,i=state.sel,rows=dayRows(i);
+    const med={tmax:median(rows.map(r=>r.tmax)),tmin:median(rows.map(r=>r.tmin)),rain:median(rows.map(r=>r.rain)),prob:median(rows.map(r=>r.prob)),wind:median(rows.map(r=>r.wind)),gust:median(rows.map(r=>r.gust))};
+    const ag=agreement(rows),dt=new Date(D.daily.time[i]+"T12:00:00");
+    const wet=rows.filter(r=>isNum(r.rain)&&r.rain>=1).length;
+    $("dayh").textContent="Model by model · "+dt.toLocaleDateString("en-AU",{weekday:"long",day:"numeric",month:"long"});
+    $("summary").innerHTML=`<span class="pill">Median <b>${f0(med.tmax)}° / ${f0(med.tmin)}°</b></span>
+      <span class="pill">Top temp spread <b>${ag.spread==null?"–":f1(ag.spread)+"°C"}</b></span>
+      <span class="pill">Rain ≥1 mm <b>${wet} of ${rows.length} models</b></span>`;
+    const out=(v,m,lim)=>isNum(v)&&isNum(m)&&Math.abs(v-m)>=lim?' class="out"':"";
+    $("tbody").innerHTML=rows.map(r=>`<tr>
+      <td><span class="mname"><i style="background:var(${r.m.c})"></i>${esc(r.m.name)}</span><span class="msrc">${esc(r.m.src)}</span></td>
+      <td${out(r.tmax,med.tmax,3)}>${f1(r.tmax)}</td><td${out(r.tmin,med.tmin,3)}>${f1(r.tmin)}</td>
+      <td${out(r.rain,med.rain,5)}>${f1(r.rain)}</td><td>${isNum(r.prob)?f0(r.prob)+"%":'<span class="dash">–</span>'}</td>
+      <td>${f0(r.wind)}</td><td>${f0(r.gust)}</td></tr>`).join("")+
+      `<tr class="median"><td>Median</td><td>${f1(med.tmax)}</td><td>${f1(med.tmin)}</td><td>${f1(med.rain)}</td><td>${isNum(med.prob)?f0(med.prob)+"%":"–"}</td><td>${f0(med.wind)}</td><td>${f0(med.gust)}</td></tr>`;
+  }
+
+  function renderChart(){
+    const D=state.data,days=D.daily.time||[],key={tmax:"temperature_2m_max",tmin:"temperature_2m_min",rain:"precipitation_sum"}[state.measure];
+    const W=360,H=210,L=34,R=10,T=12,B=28,pw=W-L-R,ph=H-T-B;
+    const lines=MODELS.map(m=>({m,v:series(key,m.id).slice(0,days.length)})).filter(s=>s.v.some(isNum));
+    const all=lines.flatMap(s=>s.v).filter(isNum);
+    if(!all.length){$("chart").innerHTML='<p class="note">No data for this measure.</p>';return;}
+    let lo=Math.min(...all),hi=Math.max(...all);
+    if(state.measure==="rain"){lo=0;hi=Math.max(5,Math.ceil(hi/5)*5);}else{lo=Math.floor((lo-1)/2)*2;hi=Math.ceil((hi+1)/2)*2;}
+    const step=state.measure==="rain"?(hi<=10?2:5):(hi-lo<=8?2:4);
+    const x=i=>L+(days.length<2?pw/2:i*pw/(days.length-1)),y=v=>T+ph-(v-lo)/(hi-lo)*ph;
+    const fg=cssv("--muted"),grid=cssv("--line");
+    let s=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${state.measure==="rain"?"Daily rain":"Daily temperature"} by model">`;
+    for(let v=lo;v<=hi+1e-9;v+=step){s+=`<line x1="${L}" x2="${W-R}" y1="${y(v)}" y2="${y(v)}" stroke="${grid}" stroke-width="1"/><text x="${L-6}" y="${y(v)+3.5}" text-anchor="end" font-size="10" fill="${fg}" font-family="IBM Plex Mono,monospace">${v}</text>`;}
+    days.forEach((d,i)=>{const dt=new Date(d+"T12:00:00");s+=`<text x="${x(i)}" y="${H-8}" text-anchor="middle" font-size="10" fill="${fg}" font-family="IBM Plex Mono,monospace" font-weight="${i===state.sel?600:400}">${i===0?"Today":dt.toLocaleDateString("en-AU",{weekday:"short"})}</text>`;});
+    s+=`<rect x="${x(state.sel)-8}" y="${T}" width="16" height="${ph}" fill="${cssv("--accent-soft")}" opacity=".7"/>`;
+    lines.forEach(l=>{const col=cssv(l.m.c);let p="";l.v.forEach((v,i)=>{if(isNum(v))p+=(p?"L":"M")+x(i).toFixed(1)+" "+y(v).toFixed(1);});
+      s+=`<path d="${p}" fill="none" stroke="${col}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" opacity=".9"/>`;
+      l.v.forEach((v,i)=>{if(isNum(v))s+=`<circle cx="${x(i)}" cy="${y(v)}" r="${i===state.sel?3.5:2.2}" fill="${col}"/>`;});});
+    s+=`<text x="${L}" y="${T-2}" font-size="9" fill="${fg}" font-family="IBM Plex Mono,monospace">${state.measure==="rain"?"mm":"°C"}</text></svg>`;
+    $("chart").innerHTML=s;
+    $("legend").innerHTML=lines.map(l=>`<span><i style="background:var(${l.m.c})"></i>${esc(l.m.name)}</span>`).join("");
+  }
+
+  $("days").addEventListener("click",e=>{const b=e.target.closest(".day");if(!b)return;state.sel=+b.dataset.i;document.querySelectorAll(".day").forEach(d=>d.setAttribute("aria-pressed",String(+d.dataset.i===state.sel)));renderDay();renderChart();});
+  document.querySelectorAll(".seg button").forEach(b=>b.addEventListener("click",()=>{state.measure=b.dataset.m;document.querySelectorAll(".seg button").forEach(x=>x.setAttribute("aria-pressed",String(x===b)));renderChart();}));
+  $("refresh").addEventListener("click",load);
+  if(window.matchMedia)matchMedia("(prefers-color-scheme: dark)").addEventListener?.("change",()=>state.data&&renderChart());
+  try{const c=JSON.parse(localStorage.getItem(CACHE)||"null");if(c){state.data=c;render();}}catch(e){}
+  load();
+})();
+</script>
+</body>
+</html>
