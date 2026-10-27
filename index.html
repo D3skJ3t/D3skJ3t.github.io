@@ -113,6 +113,16 @@ svg{display:block;width:100%;height:auto;max-width:100%}
 .legend span{display:inline-flex;align-items:center;gap:6px}
 .legend i{width:14px;height:3px;border-radius:2px;display:inline-block}
 
+/* Chart hover/tap info box */
+.chartwrap{position:relative}
+#chart{touch-action:manipulation}
+.tip{position:absolute;z-index:2;pointer-events:none;background:var(--surface);color:var(--fg);border:1px solid var(--line);border-radius:8px;padding:7px 10px;font:.78rem/1.4 var(--body);box-shadow:0 3px 10px rgb(0 0 0/.2);white-space:nowrap;transform:translate(-50%,calc(-100% - 12px))}
+.tip.below{transform:translate(-50%,12px)}
+.tip .tn{font-weight:700;display:flex;align-items:center;gap:6px}
+.tip .tn i{width:9px;height:9px;border-radius:2px;display:inline-block}
+.tip .td{font:.7rem var(--mono);color:var(--muted)}
+.tip .tv{font:.78rem var(--mono);color:var(--muted)}
+.tip .tv b{color:var(--fg);font-weight:600}
 /* Your weather sites panel */
 .panel{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px}
 .card{background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--c,var(--line));border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:3px;min-width:0}
@@ -200,7 +210,7 @@ section{display:flex;flex-direction:column;gap:10px;min-width:0}
         <button type="button" data-m="rain" aria-pressed="false">Rain</button>
       </div>
     </div>
-    <div id="chart"></div>
+    <div class="chartwrap"><div id="chart"></div><div class="tip" id="tip" role="status" hidden></div></div>
     <div class="legend" id="legend"></div>
   </section>
 
@@ -399,7 +409,7 @@ section{display:flex;flex-direction:column;gap:10px;min-width:0}
     const named=[{name:"BOM official",c:"--bom",bom:true},...SITES];
     const lines=named.map(s=>({m:s,v:days.map(k=>pick(rowsFor(k).find(r=>r.name===s.name))),dash:!!s.bom,dot:!s.bom})).filter(l=>l.v.some(isNum));
     const all=lines.flatMap(s=>s.v).filter(isNum);
-    if(!all.length){$("chart").innerHTML='<p class="note">No data for this measure.</p>';$("legend").innerHTML="";return;}
+    if(!all.length){$("chart").innerHTML='<p class="note">No data for this measure.</p>';$("legend").innerHTML="";state.pts=[];hideTip();return;}
     let lo=Math.min(...all),hi=Math.max(...all);
     if(state.measure==="rain"){lo=0;hi=Math.max(5,Math.ceil(hi/5)*5);}else{lo=Math.floor((lo-1)/2)*2;hi=Math.ceil((hi+1)/2)*2;}
     const step=state.measure==="rain"?(hi<=10?2:5):(hi-lo<=8?2:4);
@@ -409,14 +419,43 @@ section{display:flex;flex-direction:column;gap:10px;min-width:0}
     for(let v=lo;v<=hi+1e-9;v+=step){s+=`<line x1="${L}" x2="${W-R}" y1="${y(v)}" y2="${y(v)}" stroke="${grid}" stroke-width="1"/><text x="${L-6}" y="${y(v)+3.5}" text-anchor="end" font-size="10" fill="${fg}" font-family="IBM Plex Mono,monospace">${v}</text>`;}
     days.forEach((d,i)=>{const dt=new Date(d+"T12:00:00");s+=`<text x="${x(i)}" y="${H-8}" text-anchor="middle" font-size="10" fill="${fg}" font-family="IBM Plex Mono,monospace" font-weight="${i===state.sel?600:400}">${i===0?"Today":dt.toLocaleDateString("en-AU",{weekday:"short"})}</text>`;});
     s+=`<rect x="${x(state.sel)-8}" y="${T}" width="16" height="${ph}" fill="${cssv("--accent-soft")}" opacity=".7"/>`;
-    lines.forEach(l=>{const col=cssv(l.m.c);let p="";l.v.forEach((v,i)=>{if(isNum(v))p+=(p?"L":"M")+x(i).toFixed(1)+" "+y(v).toFixed(1);});
+    const pts=[];
+    lines.forEach(l=>{const col=cssv(l.m.c);let p="";l.v.forEach((v,i)=>{if(isNum(v))pts.push({x:x(i),y:y(v),i,name:l.m.name,c:l.m.c});});l.v.forEach((v,i)=>{if(isNum(v))p+=(p?"L":"M")+x(i).toFixed(1)+" "+y(v).toFixed(1);});
       s+=`<path d="${p}" fill="none" stroke="${col}" stroke-width="${l.dash?2.5:2}"${l.dash?' stroke-dasharray="5 4"':' stroke-dasharray="1 4"'} stroke-linejoin="round" stroke-linecap="round" opacity=".9"/>`;
       l.v.forEach((v,i)=>{if(!isNum(v))return;const r=i===state.sel?3.5:2.2;
         s+=l.dot?`<rect x="${x(i)-r}" y="${y(v)-r}" width="${2*r}" height="${2*r}" fill="${col}" transform="rotate(45 ${x(i)} ${y(v)})"/>`:`<circle cx="${x(i)}" cy="${y(v)}" r="${r}" fill="${col}"/>`;});});
-    s+=`<text x="${L}" y="${T-2}" font-size="9" fill="${fg}" font-family="IBM Plex Mono,monospace">${state.measure==="rain"?"mm":"°C"}</text></svg>`;
-    $("chart").innerHTML=s;
+    s+=`<text x="${L}" y="${T-2}" font-size="9" fill="${fg}" font-family="IBM Plex Mono,monospace">${state.measure==="rain"?"mm":"°C"}</text><circle id="hl" r="6.5" fill="none" stroke-width="2" visibility="hidden"/></svg>`;
+    $("chart").innerHTML=s;state.pts=pts;hideTip();
     $("legend").innerHTML=lines.map(l=>`<span><i style="${l.dash?"height:2px;background:repeating-linear-gradient(90deg,var(--bom) 0 5px,transparent 5px 8px)":`background:repeating-linear-gradient(90deg,var(${l.m.c}) 0 2px,transparent 2px 5px)`}"></i>${esc(l.m.name)}</span>`).join("");
   }
+
+  // Hover (or tap) a dot to see that source's full figures for that day
+  function hideTip(){$("tip").hidden=true;const h=document.getElementById("hl");if(h)h.setAttribute("visibility","hidden");}
+  function chartPoint(e){
+    const svg=$("chart").querySelector("svg");if(!svg||!state.pts||!state.pts.length)return;
+    const r=svg.getBoundingClientRect(),k=360/r.width,px=(e.clientX-r.left)*k,py=(e.clientY-r.top)*k;
+    let best=null,bd=Infinity;state.pts.forEach(p=>{const d=Math.hypot(p.x-px,p.y-py);if(d<bd){bd=d;best=p;}});
+    if(!best||bd>20){hideTip();return;}
+    const day=dates()[best.i],row=rowsFor(day).find(x=>x.name===best.name);if(!row){hideTip();return;}
+    const dt=new Date(day+"T12:00:00"),m=state.measure;
+    const part=(key,label,val)=>m===key?`<b>${label} ${val}</b>`:`${label} ${val}`;
+    const tip=$("tip");
+    tip.innerHTML=`<div class="tn"><i style="background:var(${best.c})"></i>${esc(row.name)}</div>
+      <div class="td">${dt.toLocaleDateString("en-AU",{weekday:"short",day:"numeric",month:"short"})}${row.sub?" · "+esc(row.sub):""}</div>
+      <div class="tv">${part("tmax","Max",isNum(row.tmax)?f0(row.tmax)+"°":"–")} · ${part("tmin","Min",isNum(row.tmin)?f0(row.tmin)+"°":"–")}</div>
+      <div class="tv">${part("rain","Rain",row.rainText==="–"?"–":esc(row.rainText)+" mm")}${isNum(row.chance)?" · "+f0(row.chance)+"% chance":""}</div>`;
+    tip.hidden=false;
+    // Place above the dot (below it near the top), kept inside the chart's width
+    const wrap=tip.parentElement.getBoundingClientRect(),cx=best.x/k+(r.left-wrap.left),cy=best.y/k+(r.top-wrap.top);
+    const half=tip.offsetWidth/2,left=Math.min(Math.max(cx,half),wrap.width-half);
+    tip.classList.toggle("below",cy<tip.offsetHeight+16);
+    tip.style.left=left+"px";tip.style.top=cy+"px";
+    const h=document.getElementById("hl");h.setAttribute("cx",best.x);h.setAttribute("cy",best.y);h.setAttribute("stroke",cssv(best.c));h.setAttribute("visibility","visible");
+  }
+  $("chart").addEventListener("pointermove",chartPoint);
+  $("chart").addEventListener("pointerdown",chartPoint);
+  $("chart").addEventListener("pointerleave",e=>{if(e.pointerType==="mouse")hideTip();});
+  document.addEventListener("pointerdown",e=>{if(!e.target.closest("#chart"))hideTip();});
 
   function renderSites(){
     const st=state.scrape?.state,S=state.data?.scraped,errs=(S&&S.errors)||{};
