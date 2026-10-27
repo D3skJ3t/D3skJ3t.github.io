@@ -17,7 +17,7 @@
   --good:#2f7d4f; --warn:#b07a12; --bad:#b4442f;
   --m1:#0b6a86; --m2:#7a4fb3; --m3:#c2571a; --m4:#2f7d4f; --m5:#c23a6b; --m6:#5b6b14; --m7:#3d63c7;
   --bom:#12242c; --bom-soft:#e4ebee;
-  --s1:#9c6b00; --s2:#0f8a7e; --s3:#a8327d; --s4:#7a5c3a;
+  --s1:#9c6b00; --s2:#0f8a7e; --s3:#a8327d; --s4:#7a5c3a; --s5:#8f3b52; --s6:#3b5b8f;
   --display:"Barlow Semi Condensed","Arial Narrow",Arial,sans-serif;
   --body:"Source Sans 3","Segoe UI",system-ui,sans-serif;
   --mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
@@ -29,7 +29,7 @@
   --good:#6cc690; --warn:#e2b04a; --bad:#ef8a72;
   --m1:#5cc0de; --m2:#b394e8; --m3:#f0935a; --m4:#6cc690; --m5:#ef7fa8; --m6:#b9c95a; --m7:#86a6f5;
   --bom:#f2f6f7; --bom-soft:#1d2e35;
-  --s1:#d9a441; --s2:#4fd1c0; --s3:#e57fbf; --s4:#c9a27a;
+  --s1:#d9a441; --s2:#4fd1c0; --s3:#e57fbf; --s4:#c9a27a; --s5:#e58aa3; --s6:#8fb0e8;
   color-scheme:dark;}}
 :root[data-theme="dark"]{
   --bg:#0d171b; --surface:#152329; --fg:#e4eef1; --muted:#93a8af; --line:#26383f;
@@ -37,7 +37,7 @@
   --good:#6cc690; --warn:#e2b04a; --bad:#ef8a72;
   --m1:#5cc0de; --m2:#b394e8; --m3:#f0935a; --m4:#6cc690; --m5:#ef7fa8; --m6:#b9c95a; --m7:#86a6f5;
   --bom:#f2f6f7; --bom-soft:#1d2e35;
-  --s1:#d9a441; --s2:#4fd1c0; --s3:#e57fbf; --s4:#c9a27a;
+  --s1:#d9a441; --s2:#4fd1c0; --s3:#e57fbf; --s4:#c9a27a; --s5:#e58aa3; --s6:#8fb0e8;
   color-scheme:dark;}
 *{box-sizing:border-box}
 html,body{background:var(--bg)}
@@ -130,6 +130,8 @@ tr.site td .mname i{border-radius:1px;transform:rotate(45deg) scale(.85)}
 .token input:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
 .linkbtn{border:0;background:none;padding:0;color:var(--accent);font:600 .85rem var(--body);text-decoration:underline;align-self:flex-start}
 .error{border:1px solid var(--bad);color:var(--bad);border-radius:10px;padding:10px 12px;font-size:.9rem}
+.warnbox{border:1px solid var(--warn);border-left-width:5px;background:var(--surface);border-radius:10px;padding:10px 12px;font-size:.9rem}
+.warnbox b{color:var(--warn)}
 footer{font-size:.8rem;color:var(--muted);display:flex;flex-direction:column;gap:6px}
 section{display:flex;flex-direction:column;gap:10px;min-width:0}
 @media (max-width:420px){.now dl{grid-template-columns:repeat(2,minmax(0,1fr))}h1{font-size:1.65rem}}
@@ -148,6 +150,7 @@ section{display:flex;flex-direction:column;gap:10px;min-width:0}
   </header>
 
   <div id="err" class="error" hidden></div>
+  <div id="warn" class="warnbox" role="status" hidden></div>
 
   <section aria-labelledby="nowh">
     <h2 id="nowh" class="eyebrow" style="font-family:var(--mono);font-size:.72rem">Right now</h2>
@@ -192,7 +195,7 @@ section{display:flex;flex-direction:column;gap:10px;min-width:0}
 
   <section aria-labelledby="offh">
     <h2 id="offh">Forecast sites</h2>
-    <p class="note" id="sitesNote">Figures from Weatherzone, WillyWeather, Elders Weather and AccuWeather are collected every 3 hours by a private scraper and shown in the table and chart above.</p>
+    <p class="note" id="sitesNote">Figures from the forecast sites below are collected every 3 hours by a private scraper and shown in the table and chart above.</p>
     <div class="sites" id="sites"></div>
     <form class="token" id="tokenForm" hidden>
       <label for="tokenIn">GitHub access token (read-only, stays on this device)</label>
@@ -239,7 +242,7 @@ section{display:flex;flex-direction:column;gap:10px;min-width:0}
   // Scraped forecast sites: private repo read with a read-only token kept on this device
   const GH_DATA="https://api.github.com/repos/D3skJ3t/oxley-weather-data/contents/data/forecast.json";
   const TOKEN_KEY="oxley-gh-token";
-  const SITES=[{id:"weatherzone",name:"Weatherzone",c:"--s1"},{id:"willyweather",name:"WillyWeather",c:"--s2"},{id:"elders",name:"Elders Weather",c:"--s3"},{id:"accuweather",name:"AccuWeather",c:"--s4"}];
+  const SITES=[{id:"weatherzone",name:"Weatherzone",c:"--s1"},{id:"willyweather",name:"WillyWeather",c:"--s2"},{id:"elders",name:"Elders Weather",c:"--s3"},{id:"accuweather",name:"AccuWeather",c:"--s4"},{id:"wunderground",name:"Weather Underground",c:"--s5"},{id:"windy",name:"Windy",c:"--s6"}];
   function getToken(){try{return localStorage.getItem(TOKEN_KEY)||"";}catch(e){return"";}}
   async function loadScraped(){
     const t=getToken();if(!t)return{state:"notoken"};
@@ -314,11 +317,14 @@ section{display:flex;flex-direction:column;gap:10px;min-width:0}
       <div><dt>Wind</dt><dd>${f0(c.wind_speed_10m)} ${compass(c.wind_direction_10m)}</dd></div>
       <div><dt>Gusts</dt><dd>${f0(c.wind_gusts_10m)} km/h</dd></div>
       <div><dt>Rain now</dt><dd>${f1(c.precipitation)} mm</dd></div></dl>`;
-    const ob=D.bom&&D.bom.obs;
+    // Live Bureau reading from the browser if it got through, otherwise the scraper's Archerfield reading
+    const so=D.scraped&&D.scraped.observations;
+    const ob=D.bom&&D.bom.obs&&isNum(D.bom.obs.temp)?D.bom.obs:(so&&isNum(so.temp)?{temp:so.temp,temp_feels_like:so.feels_like,humidity:so.humidity,
+      wind:{speed_kilometre:so.wind_kmh,direction:so.wind_dir},rain_since_9am:so.rain_since_9am,station:{name:so.station},at:so.time}:null);
     if(ob&&isNum(ob.temp)){
       const st=ob.station?.name?esc(ob.station.name)+" station":"Nearest Bureau station";
       const w=ob.wind||{};
-      $("obs").innerHTML=`<b>${st}:</b> ${f1(ob.temp)}°C, feels like ${f1(ob.temp_feels_like)}°C${isNum(ob.humidity)?", humidity "+f0(ob.humidity)+"%":""}${isNum(w.speed_kilometre)?", wind "+f0(w.speed_kilometre)+" km/h "+esc(w.direction||""):""}${isNum(ob.rain_since_9am)?", rain since 9am "+f1(ob.rain_since_9am)+" mm":""}`;
+      $("obs").innerHTML=`<b>${st}:</b> ${f1(ob.temp)}°C, feels like ${f1(ob.temp_feels_like)}°C${isNum(ob.humidity)?", humidity "+f0(ob.humidity)+"%":""}${isNum(w.speed_kilometre)?", wind "+f0(w.speed_kilometre)+" km/h "+esc(w.direction||""):""}${isNum(ob.rain_since_9am)?", rain since 9am "+f1(ob.rain_since_9am)+" mm":""}${ob.at?" (reading at "+esc(new Date(ob.at).toLocaleTimeString("en-AU",{hour:"numeric",minute:"2-digit"}))+")":""}`;
       $("obs").hidden=false;
     }else{$("obs").hidden=true;}
     // Days
@@ -357,7 +363,7 @@ section{display:flex;flex-direction:column;gap:10px;min-width:0}
     const dash='<span class="dash">–</span>';
     const siteRows=SITES.map(s=>{const d=siteDay(s.id,i);if(!d)return"";const src=siteSrc(s.id);
       return `<tr class="site">
-      <td><span class="mname"><i style="background:var(${s.c})"></i>${esc(s.name)}</span><span class="msrc">${esc(d.text||"")}${src.point?" · "+esc(src.point):""}</span></td>
+      <td><span class="mname"><i style="background:var(${s.c})"></i>${esc(s.name)}</span><span class="msrc">${[d.text,src.point].filter(Boolean).map(esc).join(" · ")}</span></td>
       <td${out(d.tmax,med.tmax,3)}>${isNum(d.tmax)?f0(d.tmax):dash}</td><td${out(d.tmin,med.tmin,3)}>${isNum(d.tmin)?f0(d.tmin):dash}</td>
       <td>${siteRainText(d)}</td><td>${isNum(d.chance)?f0(d.chance)+"%":dash}</td><td>${dash}</td><td>${dash}</td></tr>`;}).join("");
     const top=bomRow+(siteRows?`<tr class="sep"><td colspan="7">Forecast sites</td></tr>`+siteRows:"");
@@ -401,16 +407,25 @@ section{display:flex;flex-direction:column;gap:10px;min-width:0}
     const st=state.scrape?.state,S=state.data?.scraped,errs=(S&&S.errors)||{};
     const needToken=st==="notoken"||st==="denied";
     $("tokenForm").hidden=!needToken;$("forget").hidden=!getToken();
-    if(st==="notoken")$("sitesNote").textContent="To show Weatherzone, WillyWeather, Elders Weather and AccuWeather figures, enter your read-only GitHub access token for the oxley-weather-data repository. It is saved only on this device.";
+    if(st==="notoken")$("sitesNote").textContent="To show figures from the other forecast sites (Weatherzone, WillyWeather, Elders Weather, AccuWeather, Weather Underground and Windy) and Higgins Storm Chasing warnings, enter your read-only GitHub access token for the oxley-weather-data repository. It is saved only on this device.";
     else if(st==="denied")$("sitesNote").textContent="GitHub refused the saved token (status "+state.scrape.status+"). It may have expired or lost access to the repository. Enter a new one.";
     else if(st==="error"&&S)$("sitesNote").textContent="Couldn't reach GitHub just now, so these are the last scraped figures saved on this device.";
     else if(st==="error")$("sitesNote").textContent="Couldn't reach GitHub for the scraped figures. Tap Refresh to try again.";
-    else $("sitesNote").textContent="Figures from Weatherzone, WillyWeather, Elders Weather and AccuWeather are collected every 3 hours by a private scraper and shown in the table and chart above. AccuWeather covers 5 days.";
+    else $("sitesNote").textContent="Figures from the forecast sites below are collected every 3 hours by a private scraper and shown in the table and chart above. AccuWeather and Windy cover 5 to 6 days; Windy and Weather Underground give rain as a single amount and no chance.";
+    // Higgins Storm Chasing warnings: banner only while something is active
+    const W=S&&S.warnings;
+    if(W&&W.total>0){
+      const parts=Object.entries(W.counts||{}).filter(([,n])=>n>0).map(([k,n])=>n+" "+k);
+      $("warn").innerHTML=`<b>Higgins Storm Chasing: ${esc(parts.join(", "))}</b>${W.titles&&W.titles.length?". "+W.titles.map(esc).join("; "):""}. For official warnings, check the Bureau of Meteorology. <span class="note">Checked ${ago(W.fetched)}.</span>`;
+      $("warn").hidden=false;
+    }else $("warn").hidden=true;
     if(!S){$("sites").innerHTML="";return;}
-    $("sites").innerHTML=[{id:"bom",name:"BOM (scraped copy)"},...SITES].map(s=>{const src=siteSrc(s.id),e=errs[s.id];
-      if(!src)return `<div class="${e?"failed":""}">${esc(s.name)}<span>${e?"Failed: "+esc(e):"Not set up yet"}</span></div>`;
+    const tile=(name,src,e,okText)=>{if(!src)return `<div class="${e?"failed":""}">${esc(name)}<span>${e?"Failed: "+esc(e):"Not set up yet"}</span></div>`;
       const old=Date.now()-Date.parse(src.fetched)>12*3600e3;
-      return `<div class="${e?"failed":old?"stale":""}">${esc(s.name)}<span>${e?"Last run failed; showing data from "+ago(src.fetched):"Updated "+ago(src.fetched)}</span></div>`;}).join("");
+      return `<div class="${e?"failed":old?"stale":""}">${esc(name)}<span>${e?"Last run failed; showing data from "+ago(src.fetched):okText||"Updated "+ago(src.fetched)}</span></div>`;};
+    $("sites").innerHTML=[{id:"bom",name:"BOM (scraped copy)"},...SITES].map(s=>tile(s.name,siteSrc(s.id),errs[s.id])).join("")+
+      tile("BOM observations",S.observations,errs.observations,S.observations&&S.observations.station?esc(S.observations.station)+", updated "+ago(S.observations.fetched):null)+
+      tile("Higgins warnings",W,errs.warnings,W?(W.total>0?W.total+" active, checked ":"None active, checked ")+ago(W.fetched):null);
   }
   $("tokenForm").addEventListener("submit",e=>{e.preventDefault();const t=$("tokenIn").value.trim();if(!t)return;
     try{localStorage.setItem(TOKEN_KEY,t);}catch(_){}
