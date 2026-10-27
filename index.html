@@ -17,6 +17,7 @@
   --good:#2f7d4f; --warn:#b07a12; --bad:#b4442f;
   --m1:#0b6a86; --m2:#7a4fb3; --m3:#c2571a; --m4:#2f7d4f; --m5:#c23a6b; --m6:#5b6b14; --m7:#3d63c7;
   --bom:#12242c; --bom-soft:#e4ebee;
+  --s1:#9c6b00; --s2:#0f8a7e; --s3:#a8327d;
   --display:"Barlow Semi Condensed","Arial Narrow",Arial,sans-serif;
   --body:"Source Sans 3","Segoe UI",system-ui,sans-serif;
   --mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
@@ -28,6 +29,7 @@
   --good:#6cc690; --warn:#e2b04a; --bad:#ef8a72;
   --m1:#5cc0de; --m2:#b394e8; --m3:#f0935a; --m4:#6cc690; --m5:#ef7fa8; --m6:#b9c95a; --m7:#86a6f5;
   --bom:#f2f6f7; --bom-soft:#1d2e35;
+  --s1:#d9a441; --s2:#4fd1c0; --s3:#e57fbf;
   color-scheme:dark;}}
 :root[data-theme="dark"]{
   --bg:#0d171b; --surface:#152329; --fg:#e4eef1; --muted:#93a8af; --line:#26383f;
@@ -35,6 +37,7 @@
   --good:#6cc690; --warn:#e2b04a; --bad:#ef8a72;
   --m1:#5cc0de; --m2:#b394e8; --m3:#f0935a; --m4:#6cc690; --m5:#ef7fa8; --m6:#b9c95a; --m7:#86a6f5;
   --bom:#f2f6f7; --bom-soft:#1d2e35;
+  --s1:#d9a441; --s2:#4fd1c0; --s3:#e57fbf;
   color-scheme:dark;}
 *{box-sizing:border-box}
 html,body{background:var(--bg)}
@@ -114,11 +117,18 @@ svg{display:block;width:100%;height:auto;max-width:100%}
 .legend span{display:inline-flex;align-items:center;gap:6px}
 .legend i{width:14px;height:3px;border-radius:2px;display:inline-block}
 
-/* Sources */
-.links{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}
-.links a{display:block;border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:10px 12px;color:var(--fg);text-decoration:none;font-weight:600}
-.links a span{display:block;font:400 .78rem var(--body);color:var(--muted)}
-.links a:hover{border-color:var(--accent)}
+/* Forecast sites */
+tr.site td .mname i{border-radius:1px;transform:rotate(45deg) scale(.85)}
+.day .dsite{font:500 .72rem var(--mono);color:var(--muted)}
+.sites{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}
+.sites div{border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:10px 12px;font-weight:600;display:flex;flex-direction:column;gap:2px}
+.sites div span{font:400 .78rem var(--body);color:var(--muted)}
+.sites div.stale span{color:var(--warn)} .sites div.failed span{color:var(--bad)}
+.token{display:flex;flex-wrap:wrap;gap:8px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px}
+.token label{flex:1 0 100%;font-weight:600}
+.token input{flex:1 1 200px;min-width:0;font:400 .9rem var(--mono);color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px 10px}
+.token input:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.linkbtn{border:0;background:none;padding:0;color:var(--accent);font:600 .85rem var(--body);text-decoration:underline;align-self:flex-start}
 .error{border:1px solid var(--bad);color:var(--bad);border-radius:10px;padding:10px 12px;font-size:.9rem}
 footer{font-size:.8rem;color:var(--muted);display:flex;flex-direction:column;gap:6px}
 section{display:flex;flex-direction:column;gap:10px;min-width:0}
@@ -164,7 +174,7 @@ section{display:flex;flex-direction:column;gap:10px;min-width:0}
         <tbody id="tbody"></tbody>
       </table>
     </div>
-    <p class="note">The top row is the Bureau of Meteorology's official forecast for Oxley, written by its forecasters. It is kept out of the median so you can compare it against the raw models. Red figures sit well away from the model median (3°C or more for temperature, 5 mm or more for rain). Chance of rain is only published by some models.</p>
+    <p class="note">The top row is the Bureau of Meteorology's official forecast for Oxley, written by its forecasters. The diamond rows are what other forecast sites show for Oxley (Weatherzone uses its Archerfield forecast point). These rows are kept out of the median so you can compare them against the raw models. Red figures sit well away from the model median (3°C or more for temperature, 5 mm or more for rain). Chance of rain is only published by some models.</p>
   </section>
 
   <section class="chartcard" aria-labelledby="charth">
@@ -181,19 +191,19 @@ section{display:flex;flex-direction:column;gap:10px;min-width:0}
   </section>
 
   <section aria-labelledby="offh">
-    <h2 id="offh">Official and other forecasts</h2>
-    <div class="links">
-      <a href="https://www.bom.gov.au/qld/forecasts/brisbane.shtml" target="_blank" rel="noopener">Bureau of Meteorology<span>Brisbane forecast and warnings</span></a>
-      <a href="https://www.willyweather.com.au/qld/brisbane/oxley.html" target="_blank" rel="noopener">WillyWeather<span>Oxley forecast, tides and swell</span></a>
-      <a href="https://weatherzone.com.au/qld/brisbane/oxley" target="_blank" rel="noopener">Weatherzone<span>Oxley forecast and radar</span></a>
-      <a href="https://www.eldersweather.com.au/local-forecast/qld/oxley" target="_blank" rel="noopener">Elders Weather<span>Oxley local forecast</span></a>
-      <a href="https://www.accuweather.com/en/search-locations?query=Oxley%20Queensland" target="_blank" rel="noopener">AccuWeather<span>Search Oxley, Queensland</span></a>
-      <a href="https://www.windy.com/-27.556/152.975" target="_blank" rel="noopener">Windy<span>Maps and radar for Oxley</span></a>
-    </div>
+    <h2 id="offh">Forecast sites</h2>
+    <p class="note" id="sitesNote">Figures from Weatherzone, WillyWeather and Elders Weather are collected every 3 hours by a private scraper and shown in the table and chart above.</p>
+    <div class="sites" id="sites"></div>
+    <form class="token" id="tokenForm" hidden>
+      <label for="tokenIn">GitHub access token (read-only, stays on this device)</label>
+      <input id="tokenIn" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="github_pat_…">
+      <button class="btn" type="submit">Save</button>
+    </form>
+    <button class="linkbtn" id="forget" type="button" hidden>Forget token on this device</button>
   </section>
 
   <footer>
-    <span>Model data: Open-Meteo.com (free, no key), drawing on each national weather service's model output. Official forecast and station readings: Bureau of Meteorology, through the data feed its own app uses, which is unofficial and may change. For warnings and safety decisions, follow the Bureau of Meteorology.</span>
+    <span>Model data: Open-Meteo.com (free, no key), drawing on each national weather service's model output. Official forecast and station readings: Bureau of Meteorology, through the data feed its own app uses, which is unofficial and may change. Forecast site figures: scraped from each site for private use. For warnings and safety decisions, follow the Bureau of Meteorology.</span>
   </footer>
 </div>
 
@@ -226,11 +236,30 @@ section{display:flex;flex-direction:column;gap:10px;min-width:0}
     if(o.status==="fulfilled"&&o.value?.data){out.obs=o.value.data;}
     return out;
   }
-  function bomDay(i){const D=state.data;const k=D.daily.time?.[i];return (D.bom&&k&&D.bom.daily[k])||null;}
+  // Scraped forecast sites: private repo read with a read-only token kept on this device
+  const GH_DATA="https://api.github.com/repos/D3skJ3t/oxley-weather-data/contents/data/forecast.json";
+  const TOKEN_KEY="oxley-gh-token";
+  const SITES=[{id:"weatherzone",name:"Weatherzone",c:"--s1"},{id:"willyweather",name:"WillyWeather",c:"--s2"},{id:"elders",name:"Elders Weather",c:"--s3"}];
+  function getToken(){try{return localStorage.getItem(TOKEN_KEY)||"";}catch(e){return"";}}
+  async function loadScraped(){
+    const t=getToken();if(!t)return{state:"notoken"};
+    const r=await fetch(GH_DATA,{headers:{Authorization:"Bearer "+t,Accept:"application/vnd.github.raw+json"},cache:"no-store"});
+    if(r.status===401||r.status===403||r.status===404)return{state:"denied",status:r.status};
+    if(!r.ok)throw new Error("scraped "+r.status);
+    return{state:"ok",data:await r.json()};
+  }
+  function siteSrc(id){const s=state.data?.scraped?.sources;return Array.isArray(s)?s.find(x=>x.source===id)||null:null;}
+  function siteDay(id,i){const s=siteSrc(id),k=state.data.daily.time?.[i];return (s&&k&&(s.days||[]).find(d=>d.date===k))||null;}
+  function siteRain(d){if(!d)return null;return isNum(d.rain_max)?d.rain_max:(isNum(d.rain_min)?d.rain_min:null);}
+  function siteRainText(d){if(!d)return"–";if(/</.test(d.rain_text||"")&&isNum(d.rain_max))return"<"+d.rain_max;return bomRainText({rmin:d.rain_min,rmax:d.rain_max});}
+  function ago(iso){const m=Math.round((Date.now()-Date.parse(iso))/60000);if(!isFinite(m))return"time unknown";if(m<60)return m+" min ago";const h=Math.round(m/60);return h<48?h+" h ago":Math.round(h/24)+" days ago";}
+  function bomDay(i){const D=state.data;const k=D.daily.time?.[i];if(D.bom&&k&&D.bom.daily[k])return D.bom.daily[k];
+    // Fall back to the scraper's copy when the Bureau's feed can't be reached from the browser
+    const s=siteDay("bom",i);return s?{tmax:s.tmax,tmin:s.tmin,rmin:s.rain_min,rmax:s.rain_max,chance:s.chance,text:(s.text||"").replace(/\.$/,"")}:null;}
   function bomRain(b){if(!b)return null;return isNum(b.rmax)?b.rmax:(isNum(b.rmin)?b.rmin:null);}
   function bomRainText(b){if(!b)return"–";if(isNum(b.rmin)&&isNum(b.rmax)&&b.rmax>b.rmin)return b.rmin+" to "+b.rmax;const v=bomRain(b);return isNum(v)?String(v):"–";}
   const $=id=>document.getElementById(id);
-  let state={data:null,sel:0,measure:"tmax"};
+  let state={data:null,sel:0,measure:"tmax",scrape:{state:getToken()?"pending":"notoken"}};
 
   const cssv=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
   const isNum=v=>typeof v==="number"&&isFinite(v);
@@ -247,9 +276,13 @@ section{display:flex;flex-direction:column;gap:10px;min-width:0}
     const cUrl=`https://api.open-meteo.com/v1/forecast?latitude=${LAT}&longitude=${LON}&current=temperature_2m,apparent_temperature,relative_humidity_2m,precipitation,weather_code,wind_speed_10m,wind_direction_10m,wind_gusts_10m&timezone=${TZ}&wind_speed_unit=kmh`;
     try{
       const bomP=loadBom().catch(()=>null);
+      const scrP=loadScraped().catch(()=>({state:"error"}));
       const [d,c]=await Promise.all([fetch(dUrl).then(r=>{if(!r.ok)throw new Error("daily "+r.status);return r.json();}),fetch(cUrl).then(r=>{if(!r.ok)throw new Error("current "+r.status);return r.json();})]);
-      const bom=await bomP;
-      state.data={daily:d.daily,current:c.current,bom:bom&&bom.ok?bom:(bom&&bom.obs?bom:null),fetched:Date.now()};
+      const [bom,scr]=await Promise.all([bomP,scrP]);
+      state.scrape=scr;
+      // Keep the last scraped data we had if this fetch failed
+      const scraped=scr.state==="ok"?scr.data:(scr.state==="error"?state.data?.scraped||null:null);
+      state.data={daily:d.daily,current:c.current,bom:bom&&bom.ok?bom:(bom&&bom.obs?bom:null),scraped,fetched:Date.now()};
       try{localStorage.setItem(CACHE,JSON.stringify(state.data));}catch(e){}
       render();
     }catch(e){
@@ -300,8 +333,9 @@ section{display:flex;flex-direction:column;gap:10px;min-width:0}
         <span class="drain">${esc(WMO[mode(rows.map(r=>r.code))]||"")}</span>
         <span class="drain">${wet}/${rows.length} say rain</span>
         ${(b=>b&&isNum(b.tmax)?`<span class="dbom">BOM ${f0(b.tmax)}°${isNum(b.chance)?" · "+f0(b.chance)+"%":""}</span>`:"")(bomDay(i))}
+        ${(v=>v.length?`<span class="dsite">Sites ${f0(Math.min(...v))}${Math.max(...v)>Math.min(...v)?"–"+f0(Math.max(...v)):""}°</span>`:"")(SITES.map(s=>siteDay(s.id,i)?.tmax).filter(isNum))}
         <span class="agree ${ag.cls}"><i></i>${ag.label}</span></button>`;}).join("");
-    renderDay();renderChart();
+    renderDay();renderChart();renderSites();
   }
 
   function renderDay(){
@@ -319,9 +353,15 @@ section{display:flex;flex-direction:column;gap:10px;min-width:0}
       <td><span class="mname"><i style="background:var(--bom)"></i>BOM official</span><span class="msrc">Bureau of Meteorology forecasters</span></td>
       <td>${isNum(b.tmax)?f0(b.tmax):'<span class="dash">–</span>'}</td><td>${isNum(b.tmin)?f0(b.tmin):'<span class="dash">–</span>'}</td>
       <td>${bomRainText(b)}</td><td>${isNum(b.chance)?f0(b.chance)+"%":'<span class="dash">–</span>'}</td>
-      <td><span class="dash">–</span></td><td><span class="dash">–</span></td></tr>
-      <tr class="sep"><td colspan="7">Computer models</td></tr>`:"";
-    $("tbody").innerHTML=bomRow+rows.map(r=>`<tr>
+      <td><span class="dash">–</span></td><td><span class="dash">–</span></td></tr>`:"";
+    const dash='<span class="dash">–</span>';
+    const siteRows=SITES.map(s=>{const d=siteDay(s.id,i);if(!d)return"";const src=siteSrc(s.id);
+      return `<tr class="site">
+      <td><span class="mname"><i style="background:var(${s.c})"></i>${esc(s.name)}</span><span class="msrc">${esc(d.text||"")}${src.point?" · "+esc(src.point):""}</span></td>
+      <td${out(d.tmax,med.tmax,3)}>${isNum(d.tmax)?f0(d.tmax):dash}</td><td${out(d.tmin,med.tmin,3)}>${isNum(d.tmin)?f0(d.tmin):dash}</td>
+      <td>${siteRainText(d)}</td><td>${isNum(d.chance)?f0(d.chance)+"%":dash}</td><td>${dash}</td><td>${dash}</td></tr>`;}).join("");
+    const top=bomRow+(siteRows?`<tr class="sep"><td colspan="7">Forecast sites</td></tr>`+siteRows:"");
+    $("tbody").innerHTML=top+(top?`<tr class="sep"><td colspan="7">Computer models</td></tr>`:"")+rows.map(r=>`<tr>
       <td><span class="mname"><i style="background:var(${r.m.c})"></i>${esc(r.m.name)}</span><span class="msrc">${esc(r.m.src)}</span></td>
       <td${out(r.tmax,med.tmax,3)}>${f1(r.tmax)}</td><td${out(r.tmin,med.tmin,3)}>${f1(r.tmin)}</td>
       <td${out(r.rain,med.rain,5)}>${f1(r.rain)}</td><td>${isNum(r.prob)?f0(r.prob)+"%":'<span class="dash">–</span>'}</td>
@@ -334,6 +374,8 @@ section{display:flex;flex-direction:column;gap:10px;min-width:0}
     const W=360,H=210,L=34,R=10,T=12,B=28,pw=W-L-R,ph=H-T-B;
     const lines=MODELS.map(m=>({m,v:series(key,m.id).slice(0,days.length)})).filter(s=>s.v.some(isNum));
     const bv=days.map((_,i)=>{const b=bomDay(i);if(!b)return null;return state.measure==="tmax"?b.tmax:state.measure==="tmin"?b.tmin:bomRain(b);});
+    SITES.forEach(st=>{const v=days.map((_,i)=>{const d=siteDay(st.id,i);if(!d)return null;return state.measure==="rain"?siteRain(d):d[state.measure];});
+      if(v.some(isNum))lines.unshift({m:{name:st.name,c:st.c},v,dot:true});});
     if(bv.some(isNum))lines.unshift({m:{name:"BOM official",c:"--bom"},v:bv,dash:true});
     const all=lines.flatMap(s=>s.v).filter(isNum);
     if(!all.length){$("chart").innerHTML='<p class="note">No data for this measure.</p>';return;}
@@ -347,18 +389,42 @@ section{display:flex;flex-direction:column;gap:10px;min-width:0}
     days.forEach((d,i)=>{const dt=new Date(d+"T12:00:00");s+=`<text x="${x(i)}" y="${H-8}" text-anchor="middle" font-size="10" fill="${fg}" font-family="IBM Plex Mono,monospace" font-weight="${i===state.sel?600:400}">${i===0?"Today":dt.toLocaleDateString("en-AU",{weekday:"short"})}</text>`;});
     s+=`<rect x="${x(state.sel)-8}" y="${T}" width="16" height="${ph}" fill="${cssv("--accent-soft")}" opacity=".7"/>`;
     lines.forEach(l=>{const col=cssv(l.m.c);let p="";l.v.forEach((v,i)=>{if(isNum(v))p+=(p?"L":"M")+x(i).toFixed(1)+" "+y(v).toFixed(1);});
-      s+=`<path d="${p}" fill="none" stroke="${col}" stroke-width="${l.dash?2.5:2}"${l.dash?' stroke-dasharray="5 4"':""} stroke-linejoin="round" stroke-linecap="round" opacity=".9"/>`;
-      l.v.forEach((v,i)=>{if(isNum(v))s+=`<circle cx="${x(i)}" cy="${y(v)}" r="${i===state.sel?3.5:2.2}" fill="${col}"/>`;});});
+      s+=`<path d="${p}" fill="none" stroke="${col}" stroke-width="${l.dash?2.5:2}"${l.dash?' stroke-dasharray="5 4"':l.dot?' stroke-dasharray="1 4"':""} stroke-linejoin="round" stroke-linecap="round" opacity=".9"/>`;
+      l.v.forEach((v,i)=>{if(!isNum(v))return;const r=i===state.sel?3.5:2.2;
+        s+=l.dot?`<rect x="${x(i)-r}" y="${y(v)-r}" width="${2*r}" height="${2*r}" fill="${col}" transform="rotate(45 ${x(i)} ${y(v)})"/>`:`<circle cx="${x(i)}" cy="${y(v)}" r="${r}" fill="${col}"/>`;});});
     s+=`<text x="${L}" y="${T-2}" font-size="9" fill="${fg}" font-family="IBM Plex Mono,monospace">${state.measure==="rain"?"mm":"°C"}</text></svg>`;
     $("chart").innerHTML=s;
-    $("legend").innerHTML=lines.map(l=>`<span><i style="background:var(${l.m.c})${l.dash?";height:2px;background:repeating-linear-gradient(90deg,var(--bom) 0 5px,transparent 5px 8px)":""}"></i>${esc(l.m.name)}</span>`).join("");
+    $("legend").innerHTML=lines.map(l=>`<span><i style="background:var(${l.m.c})${l.dash?";height:2px;background:repeating-linear-gradient(90deg,var(--bom) 0 5px,transparent 5px 8px)":l.dot?`;background:repeating-linear-gradient(90deg,var(${l.m.c}) 0 2px,transparent 2px 5px)`:""}"></i>${esc(l.m.name)}</span>`).join("");
   }
 
+  function renderSites(){
+    const st=state.scrape?.state,S=state.data?.scraped,errs=(S&&S.errors)||{};
+    const needToken=st==="notoken"||st==="denied";
+    $("tokenForm").hidden=!needToken;$("forget").hidden=!getToken();
+    if(st==="notoken")$("sitesNote").textContent="To show Weatherzone, WillyWeather and Elders Weather figures, enter your read-only GitHub access token for the oxley-weather-data repository. It is saved only on this device.";
+    else if(st==="denied")$("sitesNote").textContent="GitHub refused the saved token (status "+state.scrape.status+"). It may have expired or lost access to the repository. Enter a new one.";
+    else if(st==="error"&&S)$("sitesNote").textContent="Couldn't reach GitHub just now, so these are the last scraped figures saved on this device.";
+    else if(st==="error")$("sitesNote").textContent="Couldn't reach GitHub for the scraped figures. Tap Refresh to try again.";
+    else $("sitesNote").textContent="Figures from Weatherzone, WillyWeather and Elders Weather are collected every 3 hours by a private scraper and shown in the table and chart above.";
+    if(!S){$("sites").innerHTML="";return;}
+    $("sites").innerHTML=[{id:"bom",name:"BOM (scraped copy)"},...SITES].map(s=>{const src=siteSrc(s.id),e=errs[s.id];
+      if(!src)return `<div class="failed">${esc(s.name)}<span>${e?"Failed: "+esc(e):"No data yet"}</span></div>`;
+      const old=Date.now()-Date.parse(src.fetched)>12*3600e3;
+      return `<div class="${e?"failed":old?"stale":""}">${esc(s.name)}<span>${e?"Last run failed; showing data from "+ago(src.fetched):"Updated "+ago(src.fetched)}</span></div>`;}).join("");
+  }
+  $("tokenForm").addEventListener("submit",e=>{e.preventDefault();const t=$("tokenIn").value.trim();if(!t)return;
+    try{localStorage.setItem(TOKEN_KEY,t);}catch(_){}
+    $("tokenIn").value="";state.scrape={state:"pending"};load();});
+  $("forget").addEventListener("click",()=>{try{localStorage.removeItem(TOKEN_KEY);}catch(_){}
+    if(state.data)state.data.scraped=null;state.scrape={state:"notoken"};
+    try{localStorage.setItem(CACHE,JSON.stringify(state.data));}catch(_){}
+    state.data?render():renderSites();});
   $("days").addEventListener("click",e=>{const b=e.target.closest(".day");if(!b)return;state.sel=+b.dataset.i;document.querySelectorAll(".day").forEach(d=>d.setAttribute("aria-pressed",String(+d.dataset.i===state.sel)));renderDay();renderChart();});
   document.querySelectorAll(".seg button").forEach(b=>b.addEventListener("click",()=>{state.measure=b.dataset.m;document.querySelectorAll(".seg button").forEach(x=>x.setAttribute("aria-pressed",String(x===b)));renderChart();}));
   $("refresh").addEventListener("click",load);
   if(window.matchMedia)matchMedia("(prefers-color-scheme: dark)").addEventListener?.("change",()=>state.data&&renderChart());
   try{const c=JSON.parse(localStorage.getItem(CACHE)||"null");if(c){state.data=c;render();}}catch(e){}
+  renderSites();
   load();
 })();
 </script>
