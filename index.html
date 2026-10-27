@@ -113,6 +113,17 @@ svg{display:block;width:100%;height:auto;max-width:100%}
 .legend span{display:inline-flex;align-items:center;gap:6px}
 .legend i{width:14px;height:3px;border-radius:2px;display:inline-block}
 
+/* Your weather sites panel */
+.panel{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px}
+.card{background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--c,var(--line));border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:3px;min-width:0}
+.card .cn{font:700 1rem/1.15 var(--display)}
+.card .cd{font:.68rem var(--mono);color:var(--muted);overflow-wrap:anywhere}
+.card .ct{font:500 1.15rem var(--mono);font-variant-numeric:tabular-nums;margin-top:4px}
+.card .ct span{color:var(--muted)}
+.card .cr{font:.78rem var(--mono);color:var(--muted)}
+.card .cx{font-size:.82rem}
+.card.empty .cx{color:var(--muted)}
+.card.alert{border-color:var(--warn)}
 /* Forecast sites */
 tr.site td .mname i{border-radius:1px;transform:rotate(45deg) scale(.85)}
 .day .dsite{font:500 .72rem var(--mono);color:var(--muted)}
@@ -161,6 +172,11 @@ section{display:flex;flex-direction:column;gap:10px;min-width:0}
     <h2 id="weekh">Next 7 days</h2>
     <p class="note">Each day shows the median of the Bureau of Meteorology and the forecast sites. The dot shows how closely they agree on the top temperature: green within 2°C, amber within 4°C, red beyond that.</p>
     <div class="days" id="days" role="group" aria-label="Choose a day"></div>
+  </section>
+
+  <section aria-labelledby="panelh">
+    <h2 id="panelh">Your weather sites</h2>
+    <div class="panel" id="panel"></div>
   </section>
 
   <section class="detail" aria-labelledby="dayh">
@@ -226,6 +242,17 @@ section{display:flex;flex-direction:column;gap:10px;min-width:0}
   const GH_DATA="https://api.github.com/repos/D3skJ3t/oxley-weather-data/contents/data/forecast.json";
   const TOKEN_KEY="oxley-gh-token";
   const SITES=[{id:"weatherzone",name:"Weatherzone",c:"--s1"},{id:"willyweather",name:"WillyWeather",c:"--s2"},{id:"elders",name:"Elders Weather",c:"--s3"},{id:"accuweather",name:"AccuWeather",c:"--s4"},{id:"wunderground",name:"Weather Underground",c:"--s5"},{id:"windy",name:"Windy",c:"--s6"}];
+  // Harris's list, in his order, for the "Your weather sites" panel
+  const PANEL=[{kind:"site",id:"weatherzone",name:"Weatherzone",dom:"weatherzone.com.au",c:"--s1"},
+    {kind:"site",id:"willyweather",name:"WillyWeather",dom:"willyweather.com.au",c:"--s2"},
+    {kind:"higgins",name:"Higgins Storm Chasing",dom:"higginsstormchasing.com",c:"--warn"},
+    {kind:"site",id:"windy",name:"Windy",dom:"windy.com",c:"--s6"},
+    {kind:"site",id:"wunderground",name:"Weather Underground",dom:"wunderground.com",c:"--s5"},
+    {kind:"meteye",name:"BOM MetEye",dom:"bom.gov.au/australia/meteye",c:"--bom"},
+    {kind:"obs",name:"BOM Latest Observations",dom:"bom.gov.au/qld/observations",c:"--bom"},
+    {kind:"site",id:"elders",name:"Elders Weather",dom:"eldersweather.com.au",c:"--s3"},
+    {kind:"none",name:"Rain Parrot",dom:"rainparrot.com.au",c:"--muted"},
+    {kind:"site",id:"accuweather",name:"AccuWeather",dom:"accuweather.com",c:"--s4"}];
   function getToken(){try{return localStorage.getItem(TOKEN_KEY)||"";}catch(e){return"";}}
   async function loadScraped(){
     const t=getToken();if(!t)return{state:"notoken"};
@@ -336,6 +363,34 @@ section{display:flex;flex-direction:column;gap:10px;min-width:0}
       <td>${r.rainText}</td><td>${isNum(r.chance)?f0(r.chance)+"%":dash}</td></tr>`;});
     $("tbody").innerHTML=rows.length?html+`<tr class="median"><td>Median</td><td>${f1(med.tmax)}</td><td>${f1(med.tmin)}</td><td>${f1(med.rain)}</td><td>${isNum(med.chance)?f0(med.chance)+"%":"–"}</td></tr>`
       :`<tr><td colspan="5">No forecasts for this day yet.</td></tr>`;
+    renderPanel(k,state.sel);
+  }
+
+  function renderPanel(k,sel){
+    const S=state.data?.scraped,errs=(S&&S.errors)||{},noToken=!S&&state.scrape?.state!=="error";
+    const dt=new Date(k+"T12:00:00");
+    $("panelh").textContent="Your weather sites · "+(sel===0?"Today":sel===1?"Tomorrow":dt.toLocaleDateString("en-AU",{weekday:"long",day:"numeric",month:"short"}));
+    const card=(p,body,cls="")=>`<div class="card ${cls}" style="--c:var(${p.c})"><span class="cn">${esc(p.name)}</span><span class="cd">${esc(p.dom)}</span>${body}</div>`;
+    const empty=(p,msg)=>card(p,`<span class="cx">${esc(msg)}</span>`,"empty");
+    const fc=(p,d,note)=>card(p,`<span class="ct">${isNum(d.tmax)?f0(d.tmax)+"°":"–"} <span>${isNum(d.tmin)?f0(d.tmin)+"°":"–"}</span></span>
+      <span class="cr">${d.rainText==="–"?"":esc(d.rainText)+" mm"}${isNum(d.chance)?(d.rainText==="–"?"":" · ")+f0(d.chance)+"% chance":""}</span>
+      ${d.text?`<span class="cx">${esc(d.text)}</span>`:""}${note?`<span class="cd">${esc(note)}</span>`:""}`);
+    $("panel").innerHTML=PANEL.map(p=>{
+      if(p.kind==="site"){const src=siteSrc(p.id);
+        if(!src)return empty(p,noToken?"Enter your GitHub token below to show this site.":errs[p.id]?"Couldn't fetch: "+errs[p.id]:p.id==="accuweather"?"Waiting for the AccuWeather key to be added.":"No data yet.");
+        const d=siteDay(p.id,k);if(!d)return empty(p,"No forecast for this day.");
+        return fc(p,{tmax:d.tmax,tmin:d.tmin,rainText:rangeText(d.rain_min,d.rain_max,d.rain_text),chance:d.chance,text:d.text},!src.point?"":p.id==="windy"?"Weather model: "+src.point.replace(/ model$/,""):"Forecast point: "+src.point);}
+      if(p.kind==="meteye"){const b=bomDay(k);if(!b)return empty(p,"No Bureau forecast for this day.");
+        return fc(p,{tmax:b.tmax,tmin:b.tmin,rainText:rangeText(b.rmin,b.rmax),chance:b.chance,text:b.text},"Bureau grid forecast for Oxley (same as the BOM row)");}
+      if(p.kind==="obs"){const o=obsNow();if(!o)return empty(p,"No station reading right now.");
+        return card(p,`<span class="ct">${f1(o.temp)}°C <span>now</span></span><span class="cr">Feels ${f0(o.feels)}° · ${f0(o.hum)}% · ${f0(o.wind)} km/h ${esc(o.dir||"")}</span>
+          <span class="cx">${esc(o.station||"Nearest station")}${o.at?", "+esc(new Date(o.at).toLocaleTimeString("en-AU",{hour:"numeric",minute:"2-digit"})):""}</span><span class="cd">Latest reading, not a forecast</span>`);}
+      if(p.kind==="higgins"){const W=S&&S.warnings;
+        if(!W)return empty(p,noToken?"Enter your GitHub token below to show warnings.":"No data yet.");
+        return W.total>0?card(p,`<span class="ct">${W.total} active</span><span class="cx">${esc(Object.entries(W.counts||{}).filter(([,n])=>n>0).map(([k,n])=>n+" "+k).join(", "))}${W.titles&&W.titles.length?": "+W.titles.map(esc).join("; "):""}</span><span class="cd">Warnings, checked ${ago(W.fetched)}</span>`,"alert")
+          :card(p,`<span class="ct">No warnings</span><span class="cd">Checked ${ago(W.fetched)}. Forecasts are subscriber-only.</span>`);}
+      return empty(p,"No figures to show: Rain Parrot is an iPhone app with no website. It shows Bureau radar.");
+    }).join("");
   }
 
   function renderChart(){
